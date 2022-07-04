@@ -2,6 +2,7 @@
 using MapControl.Caching;
 using MapControl.UiTools;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
@@ -10,50 +11,78 @@ using System.Windows.Input;
 
 namespace SampleApplication
 {
+    public class GeomInfos
+    {
+        public List<string> GeoStrings;
+        public double[] BBox;
+    }
+
     public partial class MainWindow : Window
     {
+        private GeomInfos PreprocessGeom(VectorData vecData)
+        {
+            OSGeo.OSR.SpatialReference FromSRS = vecData.SpatialReference;
+            FromSRS.SetAxisMappingStrategy(OSGeo.OSR.AxisMappingStrategy.OAMS_TRADITIONAL_GIS_ORDER);
+
+            OSGeo.OSR.SpatialReference ToSRS = new OSGeo.OSR.SpatialReference(null);
+            ToSRS.ImportFromEPSG(4326);
+            ToSRS.SetAxisMappingStrategy(OSGeo.OSR.AxisMappingStrategy.OAMS_TRADITIONAL_GIS_ORDER);
+
+            OSGeo.OSR.CoordinateTransformation CT = new OSGeo.OSR.CoordinateTransformation(FromSRS, ToSRS);
+
+            double[] xy = new double[2];
+
+            double MinLon = 999;
+            double MinLat = 999;
+            double MaxLon = -999;
+            double MaxLat = -999;
+
+            string[] NewStrParts;
+            List<string> GeomStrings = new List<string>();
+
+            for (int f = 0; f < vecData.FeatureCollection.Count; f++)
+            {
+                NetTopologySuite.Features.IFeature NTSFeature = vecData.FeatureCollection[f];
+
+                NewStrParts = new string[NTSFeature.Geometry.NumPoints];
+                for (int i = 0; i < NTSFeature.Geometry.NumPoints; i++)
+                {
+                    xy[0] = NTSFeature.Geometry.Coordinates[i][0];
+                    xy[1] = NTSFeature.Geometry.Coordinates[i][1];
+                    CT.TransformPoint(xy);
+
+                    if (xy[0] < MinLat) MinLat = xy[0];
+                    if (xy[0] > MaxLat) MaxLat = xy[0];
+                    if (xy[1] < MinLon) MinLon = xy[1];
+                    if (xy[1] > MaxLon) MaxLon = xy[1];
+
+                    NewStrParts[i] = xy[1].ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + xy[0].ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+                GeomStrings.Add(String.Join(" ", NewStrParts));
+            }
+            double[] MyBBox = new double[4];
+            MyBBox[0] = MinLon;
+            MyBBox[1] = MaxLon;
+            MyBBox[2] = MinLat;
+            MyBBox[3] = MaxLat;
+
+            GeomInfos MyGeomInfos = new GeomInfos();
+            MyGeomInfos.GeoStrings = GeomStrings;
+            MyGeomInfos.BBox = MyBBox;
+
+            return (MyGeomInfos);
+        }
+
         static MainWindow()
         {
             ImageLoader.HttpClient.DefaultRequestHeaders.Add("User-Agent", "XAML Map Control Test Application");
 
             TileImageLoader.Cache = new ImageFileCache(TileImageLoader.DefaultCacheFolder);
-            //TileImageLoader.Cache = new FileDbCache(TileImageLoader.DefaultCacheFolder);
-            //TileImageLoader.Cache = new SQLiteCache(TileImageLoader.DefaultCacheFolder);
-            //TileImageLoader.Cache = null;
-
-            var bingMapsApiKeyPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "MapControl", "BingMapsApiKey.txt");
-
-            if (File.Exists(bingMapsApiKeyPath))
-            {
-                BingMapsTileLayer.ApiKey = File.ReadAllText(bingMapsApiKeyPath)?.Trim();
-            }
         }
 
         public MainWindow()
         {
             InitializeComponent();
-
-            if (!string.IsNullOrEmpty(BingMapsTileLayer.ApiKey))
-            {
-                mapLayersMenuButton.MapLayers.Add(new MapLayerItem
-                {
-                    Text = "Bing Maps Road",
-                    Layer = (UIElement)Resources["BingMapsRoad"]
-                });
-
-                mapLayersMenuButton.MapLayers.Add(new MapLayerItem
-                {
-                    Text = "Bing Maps Aerial",
-                    Layer = (UIElement)Resources["BingMapsAerial"]
-                });
-
-                mapLayersMenuButton.MapLayers.Add(new MapLayerItem
-                {
-                    Text = "Bing Maps Aerial with Labels",
-                    Layer = (UIElement)Resources["BingMapsHybrid"]
-                });
-            }
 
             AddChartServerLayer();
 
@@ -86,6 +115,46 @@ namespace SampleApplication
 
         private void MapMouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
+            Microsoft.Win32.OpenFileDialog openFileDialog = new Microsoft.Win32.OpenFileDialog();
+            openFileDialog.Filter = "FlatGeobuf files (*.fgb)|*.fgb|" +
+                                    "Shapefiles (*.shp)|*.shp|" +
+                                    "All files (*.*)|*.*";
+            openFileDialog.FilterIndex = openFileDialog.Filter.Length;
+            openFileDialog.RestoreDirectory = true;
+            openFileDialog.Title = "Open a vector data file...";
+
+            Nullable<bool> result = openFileDialog.ShowDialog();
+            if (result != true) return;
+
+            VectorData vecData = (new VectorData(openFileDialog.FileName));
+            GeomInfos MyGeomInfos;
+            MapViewModel NewMapDrawings;
+
+            string geometryType = vecData.FeatureCollection[0].Geometry.GeometryType;
+            switch (geometryType)
+            {
+                case "Point" or "MultiPoint":
+                    Mouse.OverrideCursor = Cursors.Wait;
+                    MyGeomInfos = PreprocessGeom(vecData);
+                    NewMapDrawings = new MapViewModel(MyGeomInfos.GeoStrings, GeomType.Point);
+                    DataContext = NewMapDrawings;
+                    Mouse.OverrideCursor = Cursors.Arrow;
+                    map.ZoomToBounds(new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]));
+
+                    break;
+                case "LineString" or "Polygon" or "MultiPolygon":
+                    Mouse.OverrideCursor = Cursors.Wait;
+                    MyGeomInfos = PreprocessGeom(vecData);
+                    NewMapDrawings = new MapViewModel(MyGeomInfos.GeoStrings, GeomType.Polygon);
+                    DataContext = NewMapDrawings;
+                    Mouse.OverrideCursor = Cursors.Arrow;
+                    map.ZoomToBounds(new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]));
+                    break;
+                default:
+                    // There should be nothing here.
+                    break;
+            }
+
             if (e.ClickCount == 2)
             {
                 //map.ZoomMap(e.GetPosition(map), Math.Ceiling(map.ZoomLevel - 1.5));
@@ -116,7 +185,7 @@ namespace SampleApplication
                 }
 
                 mouseLocation.Text = string.Format(CultureInfo.InvariantCulture,
-                    "{0}  {1:00} {2:00.000}\n{3} {4:000} {5:00.000}",
+                    "{0} {1:000} {2:00.000}\n{3} {4:000} {5:00.000}",
                     latHemisphere, latitude / 60000, (latitude % 60000) / 1000d,
                     lonHemisphere, longitude / 60000, (longitude % 60000) / 1000d);
             }

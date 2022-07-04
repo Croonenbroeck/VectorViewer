@@ -4,7 +4,7 @@
         xmlns:map="clr-namespace:MapControl;assembly=MapControl.WPF"
         xmlns:tools="clr-namespace:MapControl.UiTools;assembly=MapUiTools.WPF"
         xmlns:local="clr-namespace:SampleApplication"
-        Title="XAML MapControl - WPF Sample Application" Height="600" Width="900"
+        Title="VectorViewer" Height="600" Width="900"
         Stylus.IsPressAndHoldEnabled="False">
 
     <Window.Resources>
@@ -14,7 +14,7 @@
             </ResourceDictionary.MergedDictionaries>
 
             <DataTemplate DataType="{x:Type local:PolylineItem}">
-                <map:MapPolyline Locations="{Binding Locations}" Stroke="Red" StrokeThickness="3"/>
+                <map:MapPolyline Locations="{Binding Locations}" Stroke="Blue" StrokeThickness="2"/>
             </DataTemplate>
 
             <Style x:Key="PointItemStyle" TargetType="map:MapItem">
@@ -58,9 +58,9 @@
                                         <EllipseGeometry RadiusX="8" RadiusY="8"/>
                                     </Path.Data>
                                 </Path>
-                                <Path StrokeThickness="2" Stroke="Gray" Fill="Transparent">
+                                <Path StrokeThickness="2" Stroke="Blue" Fill="Transparent">
                                     <Path.Data>
-                                        <EllipseGeometry RadiusX="8" RadiusY="8"/>
+                                        <EllipseGeometry RadiusX="5" RadiusY="5"/>
                                     </Path.Data>
                                 </Path>
                                 <Grid Canvas.Left="15" Canvas.Top="-8">
@@ -109,7 +109,7 @@
     <Grid>
         <map:Map x:Name="map"
                  MinZoomLevel="2" MaxZoomLevel="21" ZoomLevel="11" MouseWheelZoomDelta="1"
-                 Center="53.5,8.2"
+                 Center="54.1,12.12"
                  MouseLeftButtonDown="MapMouseLeftButtonDown"
                  MouseRightButtonDown="MapMouseRightButtonDown"
                  MouseMove="MapMouseMove" MouseLeave="MapMouseLeave"
@@ -123,19 +123,7 @@
 
             <map:MapItemsControl ItemsSource="{Binding Pushpins}"
                                  ItemContainerStyle="{StaticResource PushpinItemStyle}"/>
-
-            <map:Pushpin AutoCollapse="True" Location="65,-18" Content="Iceland"/>
-            <map:Pushpin AutoCollapse="True" Location="71,25" Content="Norway"/>
-            <map:Pushpin AutoCollapse="True" Location="35,33" Content="Cyprus"/>
-            <map:Pushpin AutoCollapse="True" Location="28.25,-16.5" Content="Tenerife"/>
-
-            <map:MapPath Location="53.5,8.2" Stroke="Blue" StrokeThickness="3" Fill="#1F007F00">
-                <map:MapPath.Data>
-                    <EllipseGeometry RadiusX="1852" RadiusY="1852"/>
-                </map:MapPath.Data>
-            </map:MapPath>
-
-            <map:Pushpin AutoCollapse="True" Location="53.5,8.2" Content="N 53°30' E 8°12'"/>
+ 
         </map:Map>
 
         <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="#AFFFFFFF">
@@ -155,24 +143,6 @@
                 Margin="2" ToolTip="Map Layers and Overlays"
                 Map="{Binding ElementName=map}">
                 <tools:MapLayerItem Text="OpenStreetMap" Layer="{StaticResource OpenStreetMap}"/>
-                <tools:MapLayerItem Text="OpenStreetMap German" Layer="{StaticResource OpenStreetMapGerman}"/>
-                <tools:MapLayerItem Text="OpenStreetMap French" Layer="{StaticResource OpenStreetMapFrench}"/>
-                <tools:MapLayerItem Text="OpenTopoMap" Layer="{StaticResource OpenTopoMap}"/>
-                <tools:MapLayerItem Text="TopPlusOpen WMTS" Layer="{StaticResource TopPlusOpenWMTS}"/>
-                <tools:MapLayerItem Text="TopPlusOpen WMS" Layer="{StaticResource TopPlusOpenWMS}"/>
-                <tools:MapLayerItem Text="OpenStreetMap WMS" Layer="{StaticResource OpenStreetMapWMS}"/>
-                <tools:MapLayersMenuButton.MapOverlays>
-                    <tools:MapLayerItem Text="Sample Image">
-                        <Image Source="10_535_330.jpg" map:MapPanel.BoundingBox="53.54031,8.08594,53.74871,8.43750"/>
-                    </tools:MapLayerItem>
-                    <tools:MapLayerItem Text="Seamarks" Layer="{StaticResource Seamarks}"/>
-                    <tools:MapLayerItem Text="Graticule">
-                        <map:MapGraticule Opacity="0.7"/>
-                    </tools:MapLayerItem>
-                    <tools:MapLayerItem Text="Scale">
-                        <map:MapScale HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
-                    </tools:MapLayerItem>
-                </tools:MapLayersMenuButton.MapOverlays>
             </tools:MapLayersMenuButton>
 
             <tools:MapProjectionsMenuButton x:Name="mapProjectionsMenuButton"
