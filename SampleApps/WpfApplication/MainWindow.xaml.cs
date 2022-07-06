@@ -21,15 +21,6 @@ namespace SampleApplication
     {
         private GeomInfos PreprocessGeom(VectorData vecData)
         {
-            OSGeo.OSR.SpatialReference FromSRS = vecData.SpatialReference;
-            FromSRS.SetAxisMappingStrategy(OSGeo.OSR.AxisMappingStrategy.OAMS_TRADITIONAL_GIS_ORDER);
-
-            OSGeo.OSR.SpatialReference ToSRS = new OSGeo.OSR.SpatialReference(null);
-            ToSRS.ImportFromEPSG(4326);
-            ToSRS.SetAxisMappingStrategy(OSGeo.OSR.AxisMappingStrategy.OAMS_TRADITIONAL_GIS_ORDER);
-
-            OSGeo.OSR.CoordinateTransformation CT = new OSGeo.OSR.CoordinateTransformation(FromSRS, ToSRS);
-
             double[] xy = new double[2];
 
             double MinLon = 999;
@@ -49,7 +40,6 @@ namespace SampleApplication
                 {
                     xy[0] = NTSFeature.Geometry.Coordinates[i][0];
                     xy[1] = NTSFeature.Geometry.Coordinates[i][1];
-                    CT.TransformPoint(xy);
 
                     if (xy[0] < MinLat) MinLat = xy[0];
                     if (xy[0] > MaxLat) MaxLat = xy[0];
