@@ -41,7 +41,7 @@ namespace SampleApplication
                 System.Threading.Tasks.Parallel.For(0, CoordsList.Count, i =>
                 {
                     Polylines.Add(new PolylineItem { Locations = LocationCollection.Parse(CoordsList[i]) });
-                    });
+                });
                 //}
             }
             else if (MyGeomType == GeomType.Point)
