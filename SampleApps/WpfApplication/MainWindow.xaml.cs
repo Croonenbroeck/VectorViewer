@@ -142,7 +142,8 @@ namespace SampleApplication
                     DataContext = NewMapDrawings;
                     Mouse.OverrideCursor = Cursors.Arrow;
                     watch.Stop();
-                    MessageBox.Show("Time spent: " + watch.Elapsed.Minutes + ":" + watch.Elapsed.Seconds);
+                    //MessageBox.Show("Time spent: " + watch.Elapsed.Minutes + ":" + watch.Elapsed.Seconds);
+                    MessageBox.Show("Time spent: " + watch.ElapsedMilliseconds);
                     map.ZoomToBounds(new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]));
                     break;
                 default:

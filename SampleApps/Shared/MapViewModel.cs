@@ -37,12 +37,12 @@ namespace SampleApplication
         {
             if (MyGeomType == GeomType.Line | MyGeomType == GeomType.Polygon)
             {
-                for (int i = 0; i < CoordsList.Count; i++)
-                //System.Threading.Tasks.Parallel.For(0, CoordsList.Count, i =>
+                //for (int i = 0; i < CoordsList.Count; i++)
+                System.Threading.Tasks.Parallel.For(0, CoordsList.Count, i =>
                 {
                     Polylines.Add(new PolylineItem { Locations = LocationCollection.Parse(CoordsList[i]) });
-                    //});
-                }
+                    });
+                //}
             }
             else if (MyGeomType == GeomType.Point)
             {
