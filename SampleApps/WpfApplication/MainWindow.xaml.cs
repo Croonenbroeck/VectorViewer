@@ -117,6 +117,7 @@ namespace SampleApplication
             if (result != true) return;
 
             VectorData vecData = (new VectorData(openFileDialog.FileName));
+            vecData.TransformToWGS84();
             GeomInfos MyGeomInfos;
             MapViewModel NewMapDrawings;
 
@@ -134,10 +135,14 @@ namespace SampleApplication
                     break;
                 case "LineString" or "Polygon" or "MultiPolygon":
                     Mouse.OverrideCursor = Cursors.Wait;
+                    System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
+                    watch.Start();
                     MyGeomInfos = PreprocessGeom(vecData);
                     NewMapDrawings = new MapViewModel(MyGeomInfos.GeoStrings, GeomType.Polygon);
                     DataContext = NewMapDrawings;
                     Mouse.OverrideCursor = Cursors.Arrow;
+                    watch.Stop();
+                    MessageBox.Show("Time spent: " + watch.Elapsed);
                     map.ZoomToBounds(new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]));
                     break;
                 default:
