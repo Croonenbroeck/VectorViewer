@@ -21,8 +21,6 @@ namespace SampleApplication
     {
         private GeomInfos PreprocessGeom(VectorData vecData)
         {
-            double[] xy = new double[2];
-
             int i;
             
             double MinLon = 999;
@@ -39,15 +37,12 @@ namespace SampleApplication
                 i = 0;
                 foreach (NetTopologySuite.Geometries.Coordinate c in f.Geometry.Coordinates)
                 {
-                    xy[0] = c[0];
-                    xy[1] = c[1];
-
-                    if (xy[0] < MinLat) MinLat = xy[0];
-                    if (xy[0] > MaxLat) MaxLat = xy[0];
-                    if (xy[1] < MinLon) MinLon = xy[1];
-                    if (xy[1] > MaxLon) MaxLon = xy[1];
+                    if (c[0] < MinLat) MinLat = c[0];
+                    if (c[0] > MaxLat) MaxLat = c[0];
+                    if (c[1] < MinLon) MinLon = c[1];
+                    if (c[1] > MaxLon) MaxLon = c[1];
                     
-                    NewStrParts[i] = xy[1].ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + xy[0].ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    NewStrParts[i] = c[1].ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + c[0].ToString(System.Globalization.CultureInfo.InvariantCulture);
                     i++;
                 }
                 GeomStrings.Add(String.Join(" ", NewStrParts));
@@ -146,7 +141,7 @@ namespace SampleApplication
                     Mouse.OverrideCursor = Cursors.Arrow;
                     watch.Stop();
                     //MessageBox.Show("Time spent: " + watch.Elapsed.Minutes + ":" + watch.Elapsed.Seconds);
-                    //MessageBox.Show("Time spent: " + watch.ElapsedMilliseconds);
+                    MessageBox.Show("Time spent: " + watch.ElapsedMilliseconds);
                     map.ZoomToBounds(new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]));
                     break;
                 default:
