@@ -13,13 +13,78 @@ namespace SampleApplication
 {
     public class GeomInfos
     {
-        public List<string> GeoStrings;
-        public double[] BBox;
-        public List<List<Point>> GeomPoints;
-    }
+        // ----------- Fields.
 
-    public partial class MainWindow : Window
-    {
+        private List<List<Point>> _GeoPoints;
+        public List<string> GeoStrings { get; set; }
+        public double[] BBox;
+        public GeomType GeoType;
+
+        // ----------- Getters and setters.
+
+        public List<List<Point>> GeomPoints
+        {
+            get { return (_GeoPoints); }
+            set
+            {
+                _GeoPoints = value;
+                GeoStrings = Stringify(value);
+                BBox = GetBBox();
+            }
+        }
+
+        // ----------- Constructors.
+
+        // Parameterless constructor.
+        public GeomInfos()
+        {
+            // Nothing much to do here...
+        }
+
+        // Constructor that accepts a list of points lists.
+        public GeomInfos(List<List<Point>> PointsLists)
+        {
+            GeomPoints = PointsLists; // Note that this invokes the setter, which itself invokes other things...
+        }
+
+        // Constructor that accepts a VectorData instance.
+        public GeomInfos(VectorData vecData)
+        {
+
+            string geometryType = vecData.FeatureCollection[0].Geometry.GeometryType;
+            switch (geometryType)
+            {
+                case "Point" or "MultiPoint":
+                    GeoType = GeomType.Point;
+
+                    break;
+                case "LineString" or "Polygon" or "MultiPolygon":
+                    GeoType = GeomType.Polygon;
+
+                    break;
+            }
+
+            List<List<Point>> FeaturePointsList = new List<List<Point>>();
+
+            foreach (NetTopologySuite.Features.IFeature f in vecData.FeatureCollection)
+            {
+                List<Point> ThesePoints = new List<Point>();
+
+                foreach (NetTopologySuite.Geometries.Coordinate c in f.Geometry.Coordinates)
+                {
+                    Point MyPoint = new Point();
+                    MyPoint.X = c[0];
+                    MyPoint.Y = c[1];
+                    ThesePoints.Add(MyPoint);
+                }
+                FeaturePointsList.Add(ThesePoints);
+            }
+
+            GeomPoints = FeaturePointsList; // Note that this invokes the setter, which itself invokes other things...
+        }
+
+        // ----------- Private methods.
+
         private List<string> Stringify(List<List<Point>> PointsList)
         {
             int i;
@@ -40,37 +105,25 @@ namespace SampleApplication
                 GeomStrings.Add(String.Join(" ", NewStrParts));
             }
 
-            return(GeomStrings);
+            return (GeomStrings);
         }
 
-        private GeomInfos PreprocessGeom(VectorData vecData)
+        private double[] GetBBox()
         {
             double MinLon = 999;
             double MinLat = 999;
             double MaxLon = -999;
             double MaxLat = -999;
 
-            List<List<Point>> FeaturePointsList = new List<List<Point>>();
-
-            foreach (NetTopologySuite.Features.IFeature f in vecData.FeatureCollection)
+            foreach (List<Point> l in _GeoPoints)
             {
-                List<Point> ThesePoints = new List<Point>();
-                Point MyPoint = new Point();
-
-                foreach (NetTopologySuite.Geometries.Coordinate c in f.Geometry.Coordinates)
+                foreach (Point p in l)
                 {
-                    if (c[0] < MinLat) MinLat = c[0];
-                    if (c[0] > MaxLat) MaxLat = c[0];
-                    if (c[1] < MinLon) MinLon = c[1];
-                    if (c[1] > MaxLon) MaxLon = c[1];
-
-                    MyPoint.X = c[0];
-                    MyPoint.Y = c[1];
-                    ThesePoints.Add(MyPoint);
+                    if (p.X < MinLat) MinLat = p.X;
+                    if (p.X > MaxLat) MaxLat = p.X;
+                    if (p.Y < MinLon) MinLon = p.Y;
+                    if (p.Y > MaxLon) MaxLon = p.Y;
                 }
-                //ThesePoints = Douglas_Peucker.DouglasPeuckerReduction(ThesePoints, 0.0001);
-                ThesePoints = Douglas_Peucker.DouglasPeuckerReduction(ThesePoints, 0.01);
-                FeaturePointsList.Add(ThesePoints);
             }
 
             double[] MyBBox = new double[4];
@@ -79,14 +132,15 @@ namespace SampleApplication
             MyBBox[2] = MinLat;
             MyBBox[3] = MaxLat;
 
-            List<string> GeomStrings = Stringify(FeaturePointsList);
-
-            GeomInfos MyGeomInfos = new GeomInfos();
-            MyGeomInfos.GeoStrings = GeomStrings;
-            MyGeomInfos.BBox = MyBBox;
-
-            return (MyGeomInfos);
+            return (MyBBox);
         }
+    }
+
+    // -------------------------------------------------------------------------------
+
+    public partial class MainWindow : Window
+    {
+        public GeomInfos MyGeomInfos;
 
         static MainWindow()
         {
@@ -143,7 +197,6 @@ namespace SampleApplication
 
             VectorData vecData = (new VectorData(openFileDialog.FileName));
             vecData.TransformToWGS84();
-            GeomInfos MyGeomInfos;
             MapViewModel NewMapDrawings;
 
             string geometryType = vecData.FeatureCollection[0].Geometry.GeometryType;
@@ -151,8 +204,8 @@ namespace SampleApplication
             {
                 case "Point" or "MultiPoint":
                     Mouse.OverrideCursor = Cursors.Wait;
-                    MyGeomInfos = PreprocessGeom(vecData);
-                    NewMapDrawings = new MapViewModel(MyGeomInfos.GeoStrings, GeomType.Point);
+                    MyGeomInfos = new GeomInfos(vecData);
+                    NewMapDrawings = new MapViewModel(MyGeomInfos.GeoStrings, MyGeomInfos.GeoType);
                     DataContext = NewMapDrawings;
                     Mouse.OverrideCursor = Cursors.Arrow;
                     map.ZoomToBounds(new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]));
@@ -162,14 +215,14 @@ namespace SampleApplication
                     Mouse.OverrideCursor = Cursors.Wait;
                     System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
                     watch.Start();
-                    MyGeomInfos = PreprocessGeom(vecData);
-                    NewMapDrawings = new MapViewModel(MyGeomInfos.GeoStrings, GeomType.Polygon);
+                    MyGeomInfos = new GeomInfos(vecData);
+                    NewMapDrawings = new MapViewModel(MyGeomInfos.GeoStrings, MyGeomInfos.GeoType);
                     DataContext = NewMapDrawings;
                     Mouse.OverrideCursor = Cursors.Arrow;
                     watch.Stop();
-                    //MessageBox.Show("Time spent: " + watch.Elapsed.Minutes + ":" + watch.Elapsed.Seconds);
-                    MessageBox.Show("Time spent: " + watch.ElapsedMilliseconds);
                     map.ZoomToBounds(new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]));
+                    //MessageBox.Show("Time spent: " + watch.Elapsed.Minutes + ":" + watch.Elapsed.Seconds);
+                    //MessageBox.Show("Time spent: " + watch.ElapsedMilliseconds);
                     break;
                 default:
                     // There should be nothing here.
@@ -231,6 +284,87 @@ namespace SampleApplication
             var mapItem = (MapItem)sender;
             mapItem.IsSelected = !mapItem.IsSelected;
             e.Handled = true;
+        }
+
+        private void MapMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (MyGeomInfos == null) return;
+
+            double Tolerance = 0.3;
+
+            switch (map.ZoomLevel)
+            {
+                case 2:
+                    Tolerance = 0.02;
+                    break;
+                case > 2 and <= 3:
+                    Tolerance = 0.02;
+                    break;
+                case > 3 and <= 4:
+                    Tolerance = 0.02;
+                    break;
+                case > 4 and <= 5:
+                    Tolerance = 0.02;
+                    break;
+                case > 5 and <= 6:
+                    Tolerance = 0.02;
+                    break;
+                case > 6 and <= 7:
+                    Tolerance = 0.02;
+                    break;
+                case > 7 and <= 8:
+                    Tolerance = 0.005;
+                    break;
+                case > 8 and <= 9:
+                    Tolerance = 0.005;
+                    break;
+                case > 9 and <= 10:
+                    Tolerance = 0.001;
+                    break;
+                case > 10 and <= 11:
+                    Tolerance = 0.0005;
+                    break;
+                case > 11 and <= 12:
+                    Tolerance = 0.0005;
+                    break;
+                case > 12 and <= 13:
+                    Tolerance = 0.0001;
+                    break;
+                case > 13 and <= 14:
+                    Tolerance = 0.00004;
+                    break;
+                case > 14 and <= 15:
+                    Tolerance = 0.00002;
+                    break;
+                case > 15 and <= 16:
+                    Tolerance = 0.00001;
+                    break;
+                case > 16 and <= 17:
+                    Tolerance = 0.000005;
+                    break;
+                case > 17 and <= 18:
+                    Tolerance = 0.000004;
+                    break;
+                case > 18 and <= 19:
+                    Tolerance = 0.000003;
+                    break;
+                case > 19 and <= 20:
+                    Tolerance = 0.000002;
+                    break;
+                case > 20 and <= 21:
+                    Tolerance = 0.000001;
+                    break;
+            }
+
+            System.Diagnostics.Debug.WriteLine("Zoom level = " + map.ZoomLevel + "; tolerance = " + Tolerance.ToString());
+
+            List <List<Point>> ZoomPoints = new List<List<Point>>();
+            foreach (List<Point> p in MyGeomInfos.GeomPoints) { ZoomPoints.Add(Douglas_Peucker.DouglasPeuckerReduction(p, Tolerance)); }
+
+            GeomInfos ZoomGeom = new GeomInfos(ZoomPoints);
+
+            MapViewModel NewMapDrawings = new MapViewModel(ZoomGeom.GeoStrings, MyGeomInfos.GeoType);
+            DataContext = NewMapDrawings;
         }
     }
 }

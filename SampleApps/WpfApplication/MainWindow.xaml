@@ -113,7 +113,7 @@
                  MouseLeftButtonDown="MapMouseLeftButtonDown"
                  MouseRightButtonDown="MapMouseRightButtonDown"
                  MouseMove="MapMouseMove" MouseLeave="MapMouseLeave"
-                 ManipulationInertiaStarting="MapManipulationInertiaStarting">
+                 ManipulationInertiaStarting="MapManipulationInertiaStarting" MouseWheel="MapMouseWheel">
 
             <map:MapItemsControl ItemsSource="{Binding Polylines}"/>
 
