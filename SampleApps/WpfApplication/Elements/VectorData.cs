@@ -805,6 +805,7 @@ namespace SampleApplication
                         OutLayer.Dispose();
                         OutDS.Dispose();
                         ShapeDriver.Dispose();
+
                         _busy = false;
                         return (1);
                     }
@@ -816,6 +817,7 @@ namespace SampleApplication
                     OutLayer.Dispose();
                     OutDS.Dispose();
                     ShapeDriver.Dispose();
+
                     _busy = false;
                     return (1);
                 }
@@ -905,6 +907,7 @@ namespace SampleApplication
                     OutLayer.Dispose();
                     OutDS.Dispose();
                     ShapeDriver.Dispose();
+
                     _busy = false;
                     return (1);
                 }

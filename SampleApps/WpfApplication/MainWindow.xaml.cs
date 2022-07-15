@@ -15,37 +15,62 @@ namespace SampleApplication
     {
         public List<string> GeoStrings;
         public double[] BBox;
+        public List<List<Point>> GeomPoints;
     }
 
     public partial class MainWindow : Window
     {
-        private GeomInfos PreprocessGeom(VectorData vecData)
+        private List<string> Stringify(List<List<Point>> PointsList)
         {
             int i;
-            
+            string[] NewStrParts;
+            List<string> GeomStrings = new List<string>();
+
+            foreach (List<Point> l in PointsList)
+            {
+                NewStrParts = new string[l.Count];
+
+                i = 0;
+                foreach (Point p in l)
+                {
+                    NewStrParts[i] = p.Y.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + p.X.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    i++;
+                }
+
+                GeomStrings.Add(String.Join(" ", NewStrParts));
+            }
+
+            return(GeomStrings);
+        }
+
+        private GeomInfos PreprocessGeom(VectorData vecData)
+        {
             double MinLon = 999;
             double MinLat = 999;
             double MaxLon = -999;
             double MaxLat = -999;
 
-            string[] NewStrParts;
-            List<string> GeomStrings = new List<string>();
+            List<List<Point>> FeaturePointsList = new List<List<Point>>();
 
             foreach (NetTopologySuite.Features.IFeature f in vecData.FeatureCollection)
             {
-                NewStrParts = new string[f.Geometry.NumPoints];
-                i = 0;
+                List<Point> ThesePoints = new List<Point>();
+                Point MyPoint = new Point();
+
                 foreach (NetTopologySuite.Geometries.Coordinate c in f.Geometry.Coordinates)
                 {
                     if (c[0] < MinLat) MinLat = c[0];
                     if (c[0] > MaxLat) MaxLat = c[0];
                     if (c[1] < MinLon) MinLon = c[1];
                     if (c[1] > MaxLon) MaxLon = c[1];
-                    
-                    NewStrParts[i] = c[1].ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + c[0].ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    i++;
+
+                    MyPoint.X = c[0];
+                    MyPoint.Y = c[1];
+                    ThesePoints.Add(MyPoint);
                 }
-                GeomStrings.Add(String.Join(" ", NewStrParts));
+                //ThesePoints = Douglas_Peucker.DouglasPeuckerReduction(ThesePoints, 0.0001);
+                ThesePoints = Douglas_Peucker.DouglasPeuckerReduction(ThesePoints, 0.01);
+                FeaturePointsList.Add(ThesePoints);
             }
 
             double[] MyBBox = new double[4];
@@ -53,6 +78,8 @@ namespace SampleApplication
             MyBBox[1] = MaxLon;
             MyBBox[2] = MinLat;
             MyBBox[3] = MaxLat;
+
+            List<string> GeomStrings = Stringify(FeaturePointsList);
 
             GeomInfos MyGeomInfos = new GeomInfos();
             MyGeomInfos.GeoStrings = GeomStrings;
