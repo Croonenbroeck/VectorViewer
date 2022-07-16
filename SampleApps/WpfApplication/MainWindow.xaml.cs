@@ -12,8 +12,9 @@ using System.Windows.Input;
 /*
 
 TODO:
-- Douglas-Peucker-Algorithmus parameterlos? Alternativ: Bestimme Toleranz über Viewport-Größe (aber: Wie ermitteln?).
+- Douglas-Peucker-Algorithmus parameterlos? Alternativ: Bestimme Toleranz über Viewport-Größe (siehe https://github.com/ClemensFischer/XAML-Map-Control/issues/70).
 - FGB in einen Buffer, nur im Viewport liegende Elemente auslesen. Aber: Wie? Müsste eigentlich über die Deserialize-Überladung gehen, die ein Envelope entgegen nimmt.
+- Rasterdaten: Siehe https://github.com/ClemensFischer/XAML-Map-Control/issues/45
 
 */
 
@@ -300,9 +301,9 @@ namespace SampleApplication
 
             double Tolerance = 0.3;
 
-            switch (map.ZoomLevel)
+            switch (map.ZoomLevel + Math.Sign(e.Delta))
             {
-                case 2:
+                case <= 2:
                     Tolerance = 0.02;
                     break;
                 case > 2 and <= 3:
@@ -359,12 +360,18 @@ namespace SampleApplication
                 case > 19 and <= 20:
                     Tolerance = 0.000002;
                     break;
-                case > 20 and <= 21:
+                case >= 20:
                     Tolerance = 0.000001;
                     break;
             }
 
-            System.Diagnostics.Debug.WriteLine("Zoom level = " + map.ZoomLevel + "; tolerance = " + Tolerance.ToString());
+            //BoundingBox bbox = map.ViewRectToBoundingBox(new Rect(0, 0, map.ActualWidth, map.ActualHeight));
+            //double MyWidth = Math.Abs(bbox.East - bbox.West);
+            //double MyHeight = Math.Abs(bbox.North - bbox.South);
+            //if (MyHeight < MyWidth) MyWidth = MyHeight;
+            //Tolerance = MyWidth / 200;
+
+            System.Diagnostics.Debug.WriteLine("Zoom level = " + (map.ZoomLevel + Math.Sign(e.Delta)) + "; tolerance = " + Tolerance.ToString());
 
             List <List<Point>> ZoomPoints = new List<List<Point>>();
             foreach (List<Point> p in MyGeomInfos.GeomPoints) { ZoomPoints.Add(Douglas_Peucker.DouglasPeuckerReduction(p, Tolerance)); }
