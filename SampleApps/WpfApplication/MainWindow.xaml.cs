@@ -9,6 +9,14 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 
+/*
+
+TODO:
+- Douglas-Peucker-Algorithmus parameterlos? Alternativ: Bestimme Toleranz über Viewport-Größe (aber: Wie ermitteln?).
+- FGB in einen Buffer, nur im Viewport liegende Elemente auslesen. Aber: Wie? Müsste eigentlich über die Deserialize-Überladung gehen, die ein Envelope entgegen nimmt.
+
+*/
+
 namespace SampleApplication
 {
     public class GeomInfos
