@@ -50,6 +50,9 @@ namespace MapControl
 
             if (ParentMap != null && Locations != null)
             {
+                //BoundingBox bbox = ParentMap.ViewRectToBoundingBox(new Rect(0, 0, ParentMap.ActualWidth, ParentMap.ActualHeight));
+                //System.Diagnostics.Debug.WriteLine("After - West: " + bbox.West + ", south: " + bbox.South + ", east:" + bbox.East + ", north:" + bbox.North + ".");
+
                 var longitudeOffset = GetLongitudeOffset(Location ?? Locations.FirstOrDefault());
 
                 AddPolylineLocations(pathFigures, Locations, longitudeOffset, false);

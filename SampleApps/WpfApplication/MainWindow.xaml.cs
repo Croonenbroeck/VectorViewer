@@ -403,6 +403,8 @@ namespace SampleApplication
 
         private void MapMouseWheel(object sender, MouseWheelEventArgs e)
         {
+            BoundingBox bbox = map.ViewRectToBoundingBox(new Rect(0, 0, map.ActualWidth, map.ActualHeight));
+            System.Diagnostics.Debug.WriteLine("Before - West: " + bbox.West + ", south: " + bbox.South + ", east:" + bbox.East + ", north:" + bbox.North + ".");
             CutAndSimplify(e: e);
         }
 

@@ -64,6 +64,9 @@ namespace MapControl
         private void OnViewportChanged(object sender, ViewportChangedEventArgs e)
         {
             UpdateData();
+            //BoundingBox bbox = ParentMap.ViewRectToBoundingBox(new Rect(0, 0, ParentMap.ActualWidth, ParentMap.ActualHeight));
+            //System.Diagnostics.Debug.WriteLine("After - West: " + bbox.West + ", south: " + bbox.South + ", east:" + bbox.East + ", north:" + bbox.North + ".");
+
         }
 
         protected virtual void UpdateData()
