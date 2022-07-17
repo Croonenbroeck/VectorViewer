@@ -12,7 +12,7 @@ using System.Windows.Input;
 /*
 
 TODO:
-- Viewport NACH Scrollen/Verschieben herausfinden.
+- Viewport NACH Scrollen herausfinden.
 - Douglas-Peucker-Algorithmus parameterlos? Alternativ: Bestimme Toleranz über Viewport-Größe (siehe https://github.com/ClemensFischer/XAML-Map-Control/issues/70).
 - Rasterdaten: Siehe https://github.com/ClemensFischer/XAML-Map-Control/issues/45
 
@@ -176,6 +176,108 @@ namespace SampleApplication
             }
         }
 
+        private void CutAndSimplify(MouseWheelEventArgs e = null, BoundingBox bbox = null)
+        {
+            if (MyGeomInfos == null) return;
+
+            double Tolerance = 0.000001;
+
+            if (bbox == null) bbox = map.ViewRectToBoundingBox(new Rect(0, 0, map.ActualWidth, map.ActualHeight));
+
+            NetTopologySuite.Features.FeatureCollection InFC = MyGeomInfos.vec.FeatureCollection;
+            NetTopologySuite.Features.FeatureCollection OutFC = new NetTopologySuite.Features.FeatureCollection();
+            foreach (NetTopologySuite.Features.IFeature f in InFC)
+            {
+                foreach (NetTopologySuite.Geometries.Coordinate c in f.Geometry.Coordinates)
+                {
+                    if (c.X >= bbox.West & c.X <= bbox.East & c.Y >= bbox.South & c.Y <= bbox.North) // If any point is within the bounding box, use this feature.
+                    {
+                        OutFC.Add(f);
+                        break;
+                    }
+                }
+            }
+            byte[] NewBinary = FlatGeobuf.NTS.FeatureCollectionConversions.Serialize(OutFC, FlatGeobuf.GeometryType.Unknown);
+            VectorData CurrentViewData = new VectorData(NewBinary);
+            GeomInfos CurrentViewGeom = new GeomInfos(CurrentViewData);
+
+            if (e != null)
+            {
+                switch (map.ZoomLevel + Math.Sign(e.Delta))
+                {
+                    case <= 2:
+                        Tolerance = 0.02;
+                        break;
+                    case > 2 and <= 3:
+                        Tolerance = 0.02;
+                        break;
+                    case > 3 and <= 4:
+                        Tolerance = 0.02;
+                        break;
+                    case > 4 and <= 5:
+                        Tolerance = 0.02;
+                        break;
+                    case > 5 and <= 6:
+                        Tolerance = 0.02;
+                        break;
+                    case > 6 and <= 7:
+                        Tolerance = 0.02;
+                        break;
+                    case > 7 and <= 8:
+                        Tolerance = 0.005;
+                        break;
+                    case > 8 and <= 9:
+                        Tolerance = 0.005;
+                        break;
+                    case > 9 and <= 10:
+                        Tolerance = 0.001;
+                        break;
+                    case > 10 and <= 11:
+                        Tolerance = 0.0005;
+                        break;
+                    case > 11 and <= 12:
+                        Tolerance = 0.0005;
+                        break;
+                    case > 12 and <= 13:
+                        Tolerance = 0.0001;
+                        break;
+                    case > 13 and <= 14:
+                        Tolerance = 0.00004;
+                        break;
+                    case > 14 and <= 15:
+                        Tolerance = 0.00002;
+                        break;
+                    case > 15 and <= 16:
+                        Tolerance = 0.00001;
+                        break;
+                    case > 16 and <= 17:
+                        Tolerance = 0.000005;
+                        break;
+                    case > 17 and <= 18:
+                        Tolerance = 0.000004;
+                        break;
+                    case > 18 and <= 19:
+                        Tolerance = 0.000003;
+                        break;
+                    case > 19 and <= 20:
+                        Tolerance = 0.000002;
+                        break;
+                    case >= 20:
+                        Tolerance = 0.000001;
+                        break;
+                }
+            }
+
+            List<List<Point>> ZoomPoints = new List<List<Point>>();
+            foreach (List<Point> p in CurrentViewGeom.GeomPoints) { ZoomPoints.Add(Douglas_Peucker.DouglasPeuckerReduction(p, Tolerance)); }
+
+            GeomInfos ZoomGeom = new GeomInfos(ZoomPoints);
+
+            MapViewModel NewMapDrawings = new MapViewModel(ZoomGeom.GeoStrings, MyGeomInfos.GeoType);
+            DataContext = null;
+            DataContext = NewMapDrawings;
+        }
+
         partial void AddChartServerLayer();
 
         private void ResetHeadingButtonClick(object sender, RoutedEventArgs e)
@@ -209,6 +311,7 @@ namespace SampleApplication
             VectorData vecData = new VectorData(openFileDialog.FileName);
             vecData.TransformToWGS84();
             MapViewModel NewMapDrawings;
+            BoundingBox bbox;
 
             string geometryType = vecData.FeatureCollection[0].Geometry.GeometryType;
             switch (geometryType)
@@ -216,22 +319,23 @@ namespace SampleApplication
                 case "Point" or "MultiPoint":
                     Mouse.OverrideCursor = Cursors.Wait;
                     MyGeomInfos = new GeomInfos(vecData);
+                    bbox = new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]);
+                    map.ZoomToBounds(bbox);
+                    CutAndSimplify(bbox: bbox);
                     NewMapDrawings = new MapViewModel(MyGeomInfos.GeoStrings, MyGeomInfos.GeoType);
                     DataContext = NewMapDrawings;
-                    Mouse.OverrideCursor = Cursors.Arrow;
-                    map.ZoomToBounds(new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]));
-
+                    Mouse.OverrideCursor = Cursors.Arrow;                
                     break;
                 case "LineString" or "Polygon" or "MultiPolygon":
                     Mouse.OverrideCursor = Cursors.Wait;
                     System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
                     watch.Start();
                     MyGeomInfos = new GeomInfos(vecData);
-                    NewMapDrawings = new MapViewModel(MyGeomInfos.GeoStrings, MyGeomInfos.GeoType);
-                    DataContext = NewMapDrawings;
+                    bbox = new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]);
+                    map.ZoomToBounds(bbox);
+                    CutAndSimplify(bbox: bbox);
                     Mouse.OverrideCursor = Cursors.Arrow;
                     watch.Stop();
-                    map.ZoomToBounds(new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]));
                     //MessageBox.Show("Time spent: " + watch.Elapsed.Minutes + ":" + watch.Elapsed.Seconds);
                     //MessageBox.Show("Time spent: " + watch.ElapsedMilliseconds);
                     break;
@@ -299,100 +403,12 @@ namespace SampleApplication
 
         private void MapMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            if (MyGeomInfos == null) return;
+            CutAndSimplify(e: e);
+        }
 
-            double Tolerance = 0.3;
-
-            switch (map.ZoomLevel + Math.Sign(e.Delta))
-            {
-                case <= 2:
-                    Tolerance = 0.02;
-                    break;
-                case > 2 and <= 3:
-                    Tolerance = 0.02;
-                    break;
-                case > 3 and <= 4:
-                    Tolerance = 0.02;
-                    break;
-                case > 4 and <= 5:
-                    Tolerance = 0.02;
-                    break;
-                case > 5 and <= 6:
-                    Tolerance = 0.02;
-                    break;
-                case > 6 and <= 7:
-                    Tolerance = 0.02;
-                    break;
-                case > 7 and <= 8:
-                    Tolerance = 0.005;
-                    break;
-                case > 8 and <= 9:
-                    Tolerance = 0.005;
-                    break;
-                case > 9 and <= 10:
-                    Tolerance = 0.001;
-                    break;
-                case > 10 and <= 11:
-                    Tolerance = 0.0005;
-                    break;
-                case > 11 and <= 12:
-                    Tolerance = 0.0005;
-                    break;
-                case > 12 and <= 13:
-                    Tolerance = 0.0001;
-                    break;
-                case > 13 and <= 14:
-                    Tolerance = 0.00004;
-                    break;
-                case > 14 and <= 15:
-                    Tolerance = 0.00002;
-                    break;
-                case > 15 and <= 16:
-                    Tolerance = 0.00001;
-                    break;
-                case > 16 and <= 17:
-                    Tolerance = 0.000005;
-                    break;
-                case > 17 and <= 18:
-                    Tolerance = 0.000004;
-                    break;
-                case > 18 and <= 19:
-                    Tolerance = 0.000003;
-                    break;
-                case > 19 and <= 20:
-                    Tolerance = 0.000002;
-                    break;
-                case >= 20:
-                    Tolerance = 0.000001;
-                    break;
-            }
-
-            BoundingBox bbox = map.ViewRectToBoundingBox(new Rect(0, 0, map.ActualWidth, map.ActualHeight));
-
-            NetTopologySuite.Features.FeatureCollection InFC = MyGeomInfos.vec.FeatureCollection;
-            NetTopologySuite.Features.FeatureCollection OutFC = new NetTopologySuite.Features.FeatureCollection();
-            foreach (NetTopologySuite.Features.IFeature f in InFC)
-            {
-                foreach(NetTopologySuite.Geometries.Coordinate c in f.Geometry.Coordinates)
-                {
-                    if (c.X >= bbox.West & c.X <= bbox.East & c.Y >= bbox.South & c.Y <= bbox.North) // If any point is within the bounding box, use this feature.
-                    {
-                        OutFC.Add(f);
-                        break;
-                    }
-                }
-            }
-            byte[] NewBinary = FlatGeobuf.NTS.FeatureCollectionConversions.Serialize(OutFC, FlatGeobuf.GeometryType.Unknown);
-            VectorData CurrentViewData = new VectorData(NewBinary);
-            GeomInfos CurrentViewGeom = new GeomInfos(CurrentViewData);
-
-            List <List<Point>> ZoomPoints = new List<List<Point>>();
-            foreach (List<Point> p in CurrentViewGeom.GeomPoints) { ZoomPoints.Add(Douglas_Peucker.DouglasPeuckerReduction(p, Tolerance)); }
-
-            GeomInfos ZoomGeom = new GeomInfos(ZoomPoints);
-
-            MapViewModel NewMapDrawings = new MapViewModel(ZoomGeom.GeoStrings, MyGeomInfos.GeoType);
-            DataContext = NewMapDrawings;
+        private void MapPreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left) CutAndSimplify();
         }
     }
 }
