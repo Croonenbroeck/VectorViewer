@@ -12,8 +12,8 @@ using System.Windows.Input;
 /*
 
 TODO:
+- Viewport NACH Scrollen/Verschieben herausfinden.
 - Douglas-Peucker-Algorithmus parameterlos? Alternativ: Bestimme Toleranz über Viewport-Größe (siehe https://github.com/ClemensFischer/XAML-Map-Control/issues/70).
-- FGB in einen Buffer, nur im Viewport liegende Elemente auslesen. Aber: Wie? Müsste eigentlich über die Deserialize-Überladung gehen, die ein Envelope entgegen nimmt.
 - Rasterdaten: Siehe https://github.com/ClemensFischer/XAML-Map-Control/issues/45
 
 */
@@ -28,6 +28,7 @@ namespace SampleApplication
         public List<string> GeoStrings { get; set; }
         public double[] BBox;
         public GeomType GeoType;
+        public VectorData vec;
 
         // ----------- Getters and setters.
 
@@ -59,6 +60,7 @@ namespace SampleApplication
         // Constructor that accepts a VectorData instance.
         public GeomInfos(VectorData vecData)
         {
+            vec = vecData;
 
             string geometryType = vecData.FeatureCollection[0].Geometry.GeometryType;
             switch (geometryType)
@@ -204,7 +206,7 @@ namespace SampleApplication
             Nullable<bool> result = openFileDialog.ShowDialog();
             if (result != true) return;
 
-            VectorData vecData = (new VectorData(openFileDialog.FileName));
+            VectorData vecData = new VectorData(openFileDialog.FileName);
             vecData.TransformToWGS84();
             MapViewModel NewMapDrawings;
 
@@ -365,16 +367,27 @@ namespace SampleApplication
                     break;
             }
 
-            //BoundingBox bbox = map.ViewRectToBoundingBox(new Rect(0, 0, map.ActualWidth, map.ActualHeight));
-            //double MyWidth = Math.Abs(bbox.East - bbox.West);
-            //double MyHeight = Math.Abs(bbox.North - bbox.South);
-            //if (MyHeight < MyWidth) MyWidth = MyHeight;
-            //Tolerance = MyWidth / 200;
+            BoundingBox bbox = map.ViewRectToBoundingBox(new Rect(0, 0, map.ActualWidth, map.ActualHeight));
 
-            System.Diagnostics.Debug.WriteLine("Zoom level = " + (map.ZoomLevel + Math.Sign(e.Delta)) + "; tolerance = " + Tolerance.ToString());
+            NetTopologySuite.Features.FeatureCollection InFC = MyGeomInfos.vec.FeatureCollection;
+            NetTopologySuite.Features.FeatureCollection OutFC = new NetTopologySuite.Features.FeatureCollection();
+            foreach (NetTopologySuite.Features.IFeature f in InFC)
+            {
+                foreach(NetTopologySuite.Geometries.Coordinate c in f.Geometry.Coordinates)
+                {
+                    if (c.X >= bbox.West & c.X <= bbox.East & c.Y >= bbox.South & c.Y <= bbox.North) // If any point is within the bounding box, use this feature.
+                    {
+                        OutFC.Add(f);
+                        break;
+                    }
+                }
+            }
+            byte[] NewBinary = FlatGeobuf.NTS.FeatureCollectionConversions.Serialize(OutFC, FlatGeobuf.GeometryType.Unknown);
+            VectorData CurrentViewData = new VectorData(NewBinary);
+            GeomInfos CurrentViewGeom = new GeomInfos(CurrentViewData);
 
             List <List<Point>> ZoomPoints = new List<List<Point>>();
-            foreach (List<Point> p in MyGeomInfos.GeomPoints) { ZoomPoints.Add(Douglas_Peucker.DouglasPeuckerReduction(p, Tolerance)); }
+            foreach (List<Point> p in CurrentViewGeom.GeomPoints) { ZoomPoints.Add(Douglas_Peucker.DouglasPeuckerReduction(p, Tolerance)); }
 
             GeomInfos ZoomGeom = new GeomInfos(ZoomPoints);
 

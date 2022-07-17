@@ -514,7 +514,7 @@ namespace SampleApplication
             using (System.IO.MemoryStream MemStream = new System.IO.MemoryStream(_vecData))
             {
                 FlatGeobuf.Header MyHeader = FlatGeobuf.Helpers.ReadHeader(MemStream);
-                HandleHeader(MyHeader);
+                if (MyHeader.Crs != null) HandleHeader(MyHeader);
             }
         }
 
