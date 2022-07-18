@@ -176,7 +176,7 @@ namespace SampleApplication
             }
         }
 
-        private void CutAndSimplify(MouseWheelEventArgs e = null, BoundingBox bbox = null)
+        public void CutAndSimplify(MouseWheelEventArgs e = null, BoundingBox bbox = null)
         {
             if (MyGeomInfos == null) return;
 
