@@ -184,6 +184,8 @@ namespace SampleApplication
 
             if (bbox == null) bbox = map.ViewRectToBoundingBox(new Rect(0, 0, map.ActualWidth, map.ActualHeight));
 
+            Location Banane = map.ViewToLocation(new Point(map.RenderSize.Width, map.RenderSize.Height));
+
             NetTopologySuite.Features.FeatureCollection InFC = MyGeomInfos.vec.FeatureCollection;
             NetTopologySuite.Features.FeatureCollection OutFC = new NetTopologySuite.Features.FeatureCollection();
             foreach (NetTopologySuite.Features.IFeature f in InFC)
