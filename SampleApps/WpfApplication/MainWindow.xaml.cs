@@ -67,11 +67,9 @@ namespace SampleApplication
             {
                 case "Point" or "MultiPoint":
                     GeoType = GeomType.Point;
-
                     break;
                 case "LineString" or "Polygon" or "MultiPolygon":
                     GeoType = GeomType.Polygon;
-
                     break;
             }
 
@@ -182,9 +180,17 @@ namespace SampleApplication
 
             double Tolerance = 0.000001;
 
-            if (bbox == null) bbox = map.ViewRectToBoundingBox(new Rect(0, 0, map.ActualWidth, map.ActualHeight));
+            int MyDelta;
+            if (e == null)
+            {
+                MyDelta = 0;
+            }
+            else
+            {
+                MyDelta = e.Delta;
+            }
 
-            Location Banane = map.ViewToLocation(new Point(map.RenderSize.Width, map.RenderSize.Height));
+            if (bbox == null) bbox = map.ViewRectToBoundingBox(new Rect(0, 0, map.RenderSize.Width, map.RenderSize.Height));
 
             NetTopologySuite.Features.FeatureCollection InFC = MyGeomInfos.vec.FeatureCollection;
             NetTopologySuite.Features.FeatureCollection OutFC = new NetTopologySuite.Features.FeatureCollection();
@@ -199,75 +205,73 @@ namespace SampleApplication
                     }
                 }
             }
+            if (OutFC.Count == 0) return;
             byte[] NewBinary = FlatGeobuf.NTS.FeatureCollectionConversions.Serialize(OutFC, FlatGeobuf.GeometryType.Unknown);
             VectorData CurrentViewData = new VectorData(NewBinary);
             GeomInfos CurrentViewGeom = new GeomInfos(CurrentViewData);
 
-            if (e != null)
+            switch (map.ZoomLevel + Math.Sign(MyDelta))
             {
-                switch (map.ZoomLevel + Math.Sign(e.Delta))
-                {
-                    case <= 2:
-                        Tolerance = 0.02;
-                        break;
-                    case > 2 and <= 3:
-                        Tolerance = 0.02;
-                        break;
-                    case > 3 and <= 4:
-                        Tolerance = 0.02;
-                        break;
-                    case > 4 and <= 5:
-                        Tolerance = 0.02;
-                        break;
-                    case > 5 and <= 6:
-                        Tolerance = 0.02;
-                        break;
-                    case > 6 and <= 7:
-                        Tolerance = 0.02;
-                        break;
-                    case > 7 and <= 8:
-                        Tolerance = 0.005;
-                        break;
-                    case > 8 and <= 9:
-                        Tolerance = 0.005;
-                        break;
-                    case > 9 and <= 10:
-                        Tolerance = 0.001;
-                        break;
-                    case > 10 and <= 11:
-                        Tolerance = 0.0005;
-                        break;
-                    case > 11 and <= 12:
-                        Tolerance = 0.0005;
-                        break;
-                    case > 12 and <= 13:
-                        Tolerance = 0.0001;
-                        break;
-                    case > 13 and <= 14:
-                        Tolerance = 0.00004;
-                        break;
-                    case > 14 and <= 15:
-                        Tolerance = 0.00002;
-                        break;
-                    case > 15 and <= 16:
-                        Tolerance = 0.00001;
-                        break;
-                    case > 16 and <= 17:
-                        Tolerance = 0.000005;
-                        break;
-                    case > 17 and <= 18:
-                        Tolerance = 0.000004;
-                        break;
-                    case > 18 and <= 19:
-                        Tolerance = 0.000003;
-                        break;
-                    case > 19 and <= 20:
-                        Tolerance = 0.000002;
-                        break;
-                    case >= 20:
-                        Tolerance = 0.000001;
-                        break;
-                }
+                case <= 2:
+                    Tolerance = 0.02;
+                    break;
+                case > 2 and <= 3:
+                    Tolerance = 0.02;
+                    break;
+                case > 3 and <= 4:
+                    Tolerance = 0.02;
+                    break;
+                case > 4 and <= 5:
+                    Tolerance = 0.02;
+                    break;
+                case > 5 and <= 6:
+                    Tolerance = 0.02;
+                    break;
+                case > 6 and <= 7:
+                    Tolerance = 0.02;
+                    break;
+                case > 7 and <= 8:
+                    Tolerance = 0.005;
+                    break;
+                case > 8 and <= 9:
+                    Tolerance = 0.005;
+                    break;
+                case > 9 and <= 10:
+                    Tolerance = 0.001;
+                    break;
+                case > 10 and <= 11:
+                    Tolerance = 0.0005;
+                    break;
+                case > 11 and <= 12:
+                    Tolerance = 0.0005;
+                    break;
+                case > 12 and <= 13:
+                    Tolerance = 0.0001;
+                    break;
+                case > 13 and <= 14:
+                    Tolerance = 0.00004;
+                    break;
+                case > 14 and <= 15:
+                    Tolerance = 0.00002;
+                    break;
+                case > 15 and <= 16:
+                    Tolerance = 0.00001;
+                    break;
+                case > 16 and <= 17:
+                    Tolerance = 0.000005;
+                    break;
+                case > 17 and <= 18:
+                    Tolerance = 0.000004;
+                    break;
+                case > 18 and <= 19:
+                    Tolerance = 0.000003;
+                    break;
+                case > 19 and <= 20:
+                    Tolerance = 0.000002;
+                    break;
+                case >= 20:
+                    Tolerance = 0.000001;
+                    break;
             }
 
             List<List<Point>> ZoomPoints = new List<List<Point>>();
@@ -330,16 +334,11 @@ namespace SampleApplication
                     break;
                 case "LineString" or "Polygon" or "MultiPolygon":
                     Mouse.OverrideCursor = Cursors.Wait;
-                    System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
-                    watch.Start();
                     MyGeomInfos = new GeomInfos(vecData);
                     bbox = new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]);
                     map.ZoomToBounds(bbox);
                     CutAndSimplify(bbox: bbox);
                     Mouse.OverrideCursor = Cursors.Arrow;
-                    watch.Stop();
-                    //MessageBox.Show("Time spent: " + watch.Elapsed.Minutes + ":" + watch.Elapsed.Seconds);
-                    //MessageBox.Show("Time spent: " + watch.ElapsedMilliseconds);
                     break;
                 default:
                     // There should be nothing here.
@@ -403,11 +402,30 @@ namespace SampleApplication
             e.Handled = true;
         }
 
+        private BoundingBox TargetBBox(double TargetZoomLevel, Location Center, Rect CurrentRect)
+        {
+            double South = 0;
+            double West = 0;
+            double North = 0;
+            double East = 0;
+
+            double NewViewScale = MapControl.ViewTransform.ZoomLevelToScale(TargetZoomLevel);
+
+            double NewWidth = CurrentRect.Width / (NewViewScale * MapProjection.Wgs84MeterPerDegree);
+            West = Center.Longitude - (NewWidth / 2); // TODO: Was ist mit negativen Koordinaten? UScounties checken.
+            East = Center.Longitude + (NewWidth / 2);
+
+            double NewHeight = CurrentRect.Height / (NewViewScale * MapProjection.Wgs84MeterPerDegree);
+            North = Center.Latitude + (NewHeight / 2);
+            South = Center.Latitude - (NewHeight / 2);
+
+            return (new BoundingBox(South, West, North, East));
+        }
+
         private void MapMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            BoundingBox bbox = map.ViewRectToBoundingBox(new Rect(0, 0, map.ActualWidth, map.ActualHeight));
-            System.Diagnostics.Debug.WriteLine("Before - West: " + bbox.West + ", south: " + bbox.South + ", east:" + bbox.East + ", north:" + bbox.North + ".");
-            CutAndSimplify(e: e);
+            BoundingBox TargetBox = TargetBBox(map.TargetZoomLevel, map.TargetCenter, new Rect(0, 0, map.RenderSize.Width, map.RenderSize.Height));
+            CutAndSimplify(e: e, bbox: TargetBox);
         }
 
         private void MapPreviewMouseUp(object sender, MouseButtonEventArgs e)
