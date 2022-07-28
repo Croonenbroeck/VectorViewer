@@ -193,6 +193,11 @@ namespace SampleApplication
                             {
                                 _vecData = ImportLayer(MyDS.GetLayerByIndex(0));
                             }
+                            else
+                            {
+                                _busy = false;
+                                return;
+                            }
                         }
                         HandleNameAndCRS();
                         MakeID();

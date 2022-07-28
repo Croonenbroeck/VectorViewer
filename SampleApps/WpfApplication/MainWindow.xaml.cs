@@ -1,10 +1,8 @@
 ﻿using MapControl;
 using MapControl.Caching;
-using MapControl.UiTools;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -174,7 +172,7 @@ namespace SampleApplication
             }
         }
 
-        public void CutAndSimplify(MouseWheelEventArgs e = null, BoundingBox bbox = null)
+        public void CutAndSimplify(MouseWheelEventArgs e = null, BoundingBox bbox = null, bool UseTargetZoom = false)
         {
             if (MyGeomInfos == null) return;
 
@@ -188,6 +186,16 @@ namespace SampleApplication
             else
             {
                 MyDelta = e.Delta;
+            }
+
+            double Zoom;
+            if (UseTargetZoom)
+            {
+                Zoom = map.TargetZoomLevel;
+            }
+            else
+            {
+                Zoom = map.ZoomLevel;
             }
 
             if (bbox == null) bbox = map.ViewRectToBoundingBox(new Rect(0, 0, map.RenderSize.Width, map.RenderSize.Height));
@@ -210,7 +218,7 @@ namespace SampleApplication
             VectorData CurrentViewData = new VectorData(NewBinary);
             GeomInfos CurrentViewGeom = new GeomInfos(CurrentViewData);
 
-            switch (map.ZoomLevel + Math.Sign(MyDelta))
+            switch (Zoom + Math.Sign(MyDelta))
             {
                 case <= 2:
                     Tolerance = 0.02;
@@ -315,6 +323,7 @@ namespace SampleApplication
             if (result != true) return;
 
             VectorData vecData = new VectorData(openFileDialog.FileName);
+            if (vecData.FeatureCollection == null) return; //Not a valid file provided, unable to load.
             vecData.TransformToWGS84();
             MapViewModel NewMapDrawings;
             BoundingBox bbox;
@@ -333,11 +342,15 @@ namespace SampleApplication
                     Mouse.OverrideCursor = Cursors.Arrow;                
                     break;
                 case "LineString" or "Polygon" or "MultiPolygon":
-                    Mouse.OverrideCursor = Cursors.Wait;
+                    Mouse.OverrideCursor = Cursors.Wait; // Achtung: Doppelklick auf den Standarddialog leitet einen Klick an das MouseUp-Event durch.    
                     MyGeomInfos = new GeomInfos(vecData);
+                    DataContext = null;
                     bbox = new BoundingBox(MyGeomInfos.BBox[0], MyGeomInfos.BBox[2], MyGeomInfos.BBox[1], MyGeomInfos.BBox[3]);
                     map.ZoomToBounds(bbox);
-                    CutAndSimplify(bbox: bbox);
+                    BoundingBox TBox = TargetBBox(map.TargetZoomLevel, map.TargetCenter, new Rect(0, 0, map.RenderSize.Width, map.RenderSize.Height));
+                    TBox.North = bbox.North;
+                    TBox.South = bbox.South;
+                    CutAndSimplify(bbox: TBox, UseTargetZoom: true);
                     Mouse.OverrideCursor = Cursors.Arrow;
                     break;
                 default:
@@ -425,7 +438,7 @@ namespace SampleApplication
         private void MapMouseWheel(object sender, MouseWheelEventArgs e)
         {
             BoundingBox TargetBox = TargetBBox(map.TargetZoomLevel, map.TargetCenter, new Rect(0, 0, map.RenderSize.Width, map.RenderSize.Height));
-            CutAndSimplify(e: e, bbox: TargetBox);
+            CutAndSimplify(e: e, bbox: TargetBox, UseTargetZoom: true);
         }
 
         private void MapPreviewMouseUp(object sender, MouseButtonEventArgs e)

@@ -63,13 +63,6 @@ namespace MapControl
 
         private void OnViewportChanged(object sender, ViewportChangedEventArgs e)
         {
-            //MapControl.Map myMap = (MapControl.Map) sender;
-            if (ParentMap.ZoomLevel == ParentMap.TargetZoomLevel)
-            {
-                BoundingBox bbox = ParentMap.ViewRectToBoundingBox(new Rect(0, 0, ParentMap.ActualWidth, ParentMap.ActualHeight));
-                System.Diagnostics.Debug.WriteLine("After - West: " + bbox.West + ", south: " + bbox.South + ", east:" + bbox.East + ", north:" + bbox.North + ".");
-            }
-
             UpdateData();
         }
 
