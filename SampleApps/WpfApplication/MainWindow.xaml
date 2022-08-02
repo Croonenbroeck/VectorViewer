@@ -143,6 +143,7 @@
                 Margin="2" ToolTip="Map Layers and Overlays"
                 Map="{Binding ElementName=map}">
                 <tools:MapLayerItem Text="OpenStreetMap" Layer="{StaticResource OpenStreetMap}"/>
+                <tools:MapLayerItem Text="Simplify geometry" Layer="{StaticResource OpenStreetMap}"/>
             </tools:MapLayersMenuButton>
 
             <tools:MapProjectionsMenuButton x:Name="mapProjectionsMenuButton"

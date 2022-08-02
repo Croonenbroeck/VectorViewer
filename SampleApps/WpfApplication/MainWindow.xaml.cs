@@ -10,8 +10,6 @@ using System.Windows.Input;
 /*
 
 TODO:
-- Viewport NACH Scrollen herausfinden.
-- Douglas-Peucker-Algorithmus parameterlos? Alternativ: Bestimme Toleranz über Viewport-Größe (siehe https://github.com/ClemensFischer/XAML-Map-Control/issues/70).
 - Rasterdaten: Siehe https://github.com/ClemensFischer/XAML-Map-Control/issues/45
 
 */
@@ -192,6 +190,7 @@ namespace SampleApplication
             if (UseTargetZoom)
             {
                 Zoom = map.TargetZoomLevel;
+                MyDelta = 0;
             }
             else
             {
@@ -283,7 +282,20 @@ namespace SampleApplication
             }
 
             List<List<Point>> ZoomPoints = new List<List<Point>>();
-            foreach (List<Point> p in CurrentViewGeom.GeomPoints) { ZoomPoints.Add(Douglas_Peucker.DouglasPeuckerReduction(p, Tolerance)); }
+            if (mapLayersMenuButton.Map.Tag != null)
+            {
+                if ((bool)mapLayersMenuButton.Map.Tag == true)
+                {
+                    foreach (List<Point> p in CurrentViewGeom.GeomPoints) { ZoomPoints.Add(Douglas_Peucker.DouglasPeuckerReduction(p, Tolerance)); }
+                } else
+                {
+                    foreach (List<Point> p in CurrentViewGeom.GeomPoints) { ZoomPoints.Add(p); }
+                }
+            }
+            else
+            {
+                foreach (List<Point> p in CurrentViewGeom.GeomPoints) { ZoomPoints.Add(Douglas_Peucker.DouglasPeuckerReduction(p, Tolerance)); }
+            }
 
             GeomInfos ZoomGeom = new GeomInfos(ZoomPoints);
 

@@ -34,6 +34,7 @@ namespace MapControl.UiTools
 #else
     [ContentProperty(nameof(MapLayers))]
 #endif
+
     public class MapLayersMenuButton : MenuButton
     {
         private UIElement selectedLayer;
@@ -95,6 +96,15 @@ namespace MapControl.UiTools
         private void MapLayerClicked(object sender, RoutedEventArgs e)
         {
             var item = (FrameworkElement)sender;
+
+            if ((string)((System.Windows.Controls.HeaderedItemsControl)item).Header == "Simplify geometry")
+            {
+                ((System.Windows.Controls.MenuItem)item).IsChecked = !(((System.Windows.Controls.MenuItem)item).IsChecked);
+                Map.Tag = ((System.Windows.Controls.MenuItem)item).IsChecked;
+                
+                return;
+            }
+            
             var layer = (UIElement)item.Tag;
 
             SetMapLayer(layer);
